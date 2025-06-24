@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'home_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'main_page.dart'; // ubah ini
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -13,13 +14,20 @@ class _SplashPageState extends State<SplashPage> {
   @override
   void initState() {
     super.initState();
-    // Navigasi ke halaman utama setelah 3 detik
-    Timer(const Duration(seconds: 3), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomePage()),
-      );
-    });
+    _goToMainPage();
+  }
+
+  Future<void> _goToMainPage() async {
+    await Future.delayed(const Duration(seconds: 3)); // delay splash
+    final prefs = await SharedPreferences.getInstance();
+    final isFahrenheit = prefs.getBool('useFahrenheit') ?? false;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MainPage(initialIsFahrenheit: isFahrenheit),
+      ),
+    );
   }
 
   @override

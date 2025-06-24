@@ -2,8 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ForecastService {
-  final String apiKey =
-      '729db33119e179c070e8decdd79e756c'; // Ganti dengan API key kamu
+  final String apiKey = '729db33119e179c070e8decdd79e756c'; // Ganti dengan API key kamu
 
   Future<List<Map<String, dynamic>>> fetchForecast(String city) async {
     final url =
@@ -19,7 +18,7 @@ class ForecastService {
         final item = data['list'][i];
         forecastList.add({
           'date': item['dt_txt'],
-          'temp': item['main']['temp'],
+          'temp': (item['main']['temp'] as num).toDouble(), // ✅ fix
           'desc': item['weather'][0]['description'],
           'icon': item['weather'][0]['icon'],
         });

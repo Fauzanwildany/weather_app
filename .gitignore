@@ -32,6 +32,8 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+!/app-weather-release.apk
+
 
 # Symbolication related
 app.*.symbols

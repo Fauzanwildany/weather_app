@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
 import '../services/weather_service.dart';
 import '../models/weather_model.dart';
+import '../providers/theme_provider.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final Function(String) onCityChanged;
+  final bool isFahrenheit;
+
+  const HomePage({
+    super.key,
+    required this.onCityChanged,
+    required this.isFahrenheit,
+  });
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -31,8 +39,8 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         _weather = data;
       });
+      widget.onCityChanged(city);
     } catch (e) {
-      // Jangan gunakan print di produksi
       setState(() {
         _weather = null;
       });
@@ -43,9 +51,14 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  double _convertTemp(double celsius) {
+    return widget.isFahrenheit ? (celsius * 9 / 5 + 32) : celsius;
+  }
+
+  String _unitSymbol() => widget.isFahrenheit ? '°F' : '°C';
+
   LinearGradient _getWeatherGradient(String description) {
     description = description.toLowerCase();
-
     if (description.contains('rain')) {
       return const LinearGradient(
         colors: [Colors.grey, Colors.blueGrey],
@@ -75,126 +88,127 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('WeatherNow'),
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: Colors.blue.shade400,
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient:
-              _weather != null
-                  ? _getWeatherGradient(_weather!.description)
-                  : const LinearGradient(
-                    colors: [Colors.blue, Colors.lightBlueAccent],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            // Kotak pencarian
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 6,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: TextField(
-                controller: _cityController,
-                decoration: InputDecoration(
-                  hintText: 'Masukkan nama kota',
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.search),
-                    onPressed: () {
-                      final city = _cityController.text.trim();
-                      if (city.isNotEmpty) {
-                        _fetchWeather(city);
-                      }
-                    },
-                  ),
-                ),
-              ),
+    return ValueListenableBuilder<Color>(
+      valueListenable: ThemeProvider.backgroundColor,
+      builder: (context, bgColor, _) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('WeatherNow'),
+            centerTitle: true,
+            elevation: 0,
+            backgroundColor: Colors.blue.shade400,
+          ),
+          body: Container(
+            decoration: BoxDecoration(
+              gradient:
+                  _weather != null
+                      ? _getWeatherGradient(_weather!.description)
+                      : null,
+              color: _weather == null ? bgColor : null,
             ),
-            const SizedBox(height: 30),
-
-            // Cuaca atau loading
-            if (_isLoading)
-              const Center(child: CircularProgressIndicator())
-            else if (_weather != null)
-              Expanded(
-                child: Center(
-                  child: Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    elevation: 6,
-                    color: Colors.white.withAlpha(242),
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _weather!.cityName,
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Image.network(
-                            'https://openweathermap.org/img/wn/${_weather!.icon}@4x.png',
-                            width: 100,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            '${_weather!.temperature.toStringAsFixed(1)}°C',
-                            style: const TextStyle(
-                              fontSize: 52,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            _weather!.description,
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontStyle: FontStyle.italic,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 6,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: _cityController,
+                    decoration: InputDecoration(
+                      hintText: 'Masukkan nama kota',
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.search),
+                        onPressed: () {
+                          final city = _cityController.text.trim();
+                          if (city.isNotEmpty) {
+                            _fetchWeather(city);
+                          }
+                        },
                       ),
                     ),
                   ),
                 ),
-              )
-            else
-              const Padding(
-                padding: EdgeInsets.only(top: 40),
-                child: Text(
-                  'Masukkan nama kota untuk melihat cuaca.',
-                  style: TextStyle(fontSize: 18, color: Colors.white),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-          ],
-        ),
-      ),
+                const SizedBox(height: 30),
+                if (_isLoading)
+                  const Center(child: CircularProgressIndicator())
+                else if (_weather != null)
+                  Expanded(
+                    child: Center(
+                      child: Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        elevation: 6,
+                        color: Colors.white.withAlpha(242),
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _weather!.cityName,
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Image.network(
+                                'https://openweathermap.org/img/wn/${_weather!.icon}@4x.png',
+                                width: 100,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                '${_convertTemp(_weather!.temperature).toStringAsFixed(1)}${_unitSymbol()}',
+                                style: const TextStyle(
+                                  fontSize: 52,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                _weather!.description,
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontStyle: FontStyle.italic,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  const Padding(
+                    padding: EdgeInsets.only(top: 40),
+                    child: Text(
+                      'Masukkan nama kota untuk melihat cuaca.',
+                      style: TextStyle(fontSize: 18, color: Colors.white),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
